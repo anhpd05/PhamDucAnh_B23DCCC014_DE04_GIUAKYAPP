@@ -8,7 +8,7 @@ const INVOICES_KEY = '@restaurant/invoices';
 export type LoadedData = { dishes: Dish[]; invoices: Invoice[] };
 
 function seed(): LoadedData {
-  return { dishes: SEED_DISHES, invoices: createSeedInvoices() };
+  return { dishes: SEED_DISHES.map(d => ({ ...d })), invoices: createSeedInvoices() };
 }
 
 export async function loadData(): Promise<LoadedData> {

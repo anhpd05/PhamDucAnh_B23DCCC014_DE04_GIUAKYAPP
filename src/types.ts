@@ -2,6 +2,8 @@ export const CATEGORIES = ['Khai vị', 'Món chính', 'Tráng miệng', 'Đồ 
 export type Category = (typeof CATEGORIES)[number];
 
 export const TABLE_COUNT = 10;
+export const ACTIVE = 'Đang phục vụ';
+export const PAID = 'Đã thanh toán';
 
 export type Dish = {
   id: string;
@@ -12,7 +14,7 @@ export type Dish = {
 };
 
 export type InvoiceItem = { dishId: string; quantity: number };
-export type InvoiceStatus = 'Đang phục vụ' | 'Đã thanh toán';
+export type InvoiceStatus = typeof ACTIVE | typeof PAID;
 
 export type Invoice = {
   id: string;

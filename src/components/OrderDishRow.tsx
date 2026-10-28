@@ -1,10 +1,10 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { colors } from '../theme/colors';
-import { fontSize, fontWeight, spacing } from '../theme/typography';
+import { fontSize, fontWeight, radius, shadow } from '../theme/typography';
 import type { Dish } from '../types';
 import { formatMoney } from '../utils/format';
-import Card from './Card';
+import AppButton from './AppButton';
 import QuantityStepper from './QuantityStepper';
 
 type Props = {
@@ -15,36 +15,59 @@ type Props = {
 };
 
 export default function OrderDishRow({ dish, quantity, onIncrease, onDecrease }: Props) {
+  const soldOut = !dish.available;
   return (
-    <Card style={styles.card}>
-      <View style={styles.info}>
+    <View style={[styles.card, quantity > 0 && styles.cardOrdered]}>
+      <View style={[styles.info, soldOut && styles.dim]}>
         <Text style={styles.name}>{dish.name}</Text>
-        <View style={styles.metaRow}>
-          <Text style={styles.price}>{formatMoney(dish.price)}</Text>
-          {!dish.available && <Text style={styles.soldOut}>Hết món</Text>}
-        </View>
+        <Text style={styles.price}>{formatMoney(dish.price)}</Text>
       </View>
-      <QuantityStepper
-        quantity={quantity}
-        canIncrease={dish.available}
-        canDecrease={quantity > 0}
-        onIncrease={onIncrease}
-        onDecrease={onDecrease}
-      />
-    </Card>
+      {soldOut ? (
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>Hết món</Text>
+        </View>
+      ) : null}
+      {quantity > 0 ? (
+        <QuantityStepper
+          quantity={quantity}
+          canIncrease={!soldOut}
+          onIncrease={onIncrease}
+          onDecrease={onDecrease}
+        />
+      ) : (
+        <AppButton
+          title="+ Thêm"
+          small
+          variant="soft"
+          disabled={soldOut}
+          onPress={onIncrease}
+          style={styles.addBtn}
+        />
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm },
-  info: { flex: 1, paddingRight: spacing.md },
-  name: { fontSize: fontSize.title, fontWeight: fontWeight.bold, color: colors.text },
-  metaRow: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.xs },
-  price: { fontSize: fontSize.small, color: colors.textMuted },
-  soldOut: {
-    marginLeft: spacing.sm,
-    fontSize: fontSize.caption,
-    fontWeight: fontWeight.bold,
-    color: colors.danger,
+  card: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: colors.card,
+    borderRadius: radius.card,
+    borderWidth: 1.5,
+    borderColor: colors.card,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginBottom: 10,
+    ...shadow,
   },
+  cardOrdered: { borderColor: colors.primary },
+  info: { flex: 1 },
+  dim: { opacity: 0.45 },
+  name: { fontSize: fontSize.name, fontWeight: fontWeight.semibold, color: colors.text },
+  price: { fontSize: fontSize.body, color: colors.textSub, marginTop: 2 },
+  badge: { backgroundColor: colors.dangerSoft, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
+  badgeText: { fontSize: fontSize.tiny, fontWeight: fontWeight.semibold, color: colors.danger },
+  addBtn: { paddingHorizontal: 14 },
 });

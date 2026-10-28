@@ -1,17 +1,15 @@
-import { CATEGORIES, type Category, type Dish, type Invoice } from '../types';
+import { ACTIVE, CATEGORIES, type Category, type Dish, type Invoice } from '../types';
 
 export function getActiveInvoice(invoices: Invoice[], tableNumber: number): Invoice | undefined {
-  return invoices.find(i => i.tableNumber === tableNumber && i.status === 'Đang phục vụ');
+  return invoices.find(i => i.tableNumber === tableNumber && i.status === ACTIVE);
 }
 
-export function busyTableCount(invoices: Invoice[]): number {
-  return new Set(invoices.filter(i => i.status === 'Đang phục vụ').map(i => i.tableNumber)).size;
+export function busyTables(invoices: Invoice[]): Set<number> {
+  return new Set(invoices.filter(i => i.status === ACTIVE).map(i => i.tableNumber));
 }
 
-export function isDishInActiveInvoice(invoices: Invoice[], dishId: string): boolean {
-  return invoices.some(
-    i => i.status === 'Đang phục vụ' && i.items.some(item => item.dishId === dishId),
-  );
+export function findActiveInvoiceWithDish(invoices: Invoice[], dishId: string): Invoice | undefined {
+  return invoices.find(i => i.status === ACTIVE && i.items.some(item => item.dishId === dishId));
 }
 
 export type DishSection = { title: Category; data: Dish[] };
@@ -31,8 +29,16 @@ export type InvoiceLine = {
   lineTotal: number;
 };
 
-export function invoiceLines(invoice: Invoice, dishes: Dish[]): InvoiceLine[] {
-  return invoice.items.map(item => {
+export type InvoiceCalc = {
+  lines: InvoiceLine[];
+  count: number;
+  subtotal: number;
+  vat: number;
+  total: number;
+};
+
+export function calcInvoice(invoice: Invoice | undefined, dishes: Dish[]): InvoiceCalc {
+  const lines: InvoiceLine[] = (invoice ? invoice.items : []).map(item => {
     const dish = dishes.find(d => d.id === item.dishId);
     const unitPrice = dish ? dish.price : 0;
     return {
@@ -43,13 +49,8 @@ export function invoiceLines(invoice: Invoice, dishes: Dish[]): InvoiceLine[] {
       lineTotal: unitPrice * item.quantity,
     };
   });
-}
-
-export function calcTotals(subtotal: number) {
+  const subtotal = lines.reduce((sum, l) => sum + l.lineTotal, 0);
   const vat = Math.round(subtotal * 0.08);
-  return { subtotal, vat, total: subtotal + vat };
-}
-
-export function subtotalOf(lines: InvoiceLine[]): number {
-  return lines.reduce((sum, l) => sum + l.lineTotal, 0);
+  const count = lines.reduce((sum, l) => sum + l.quantity, 0);
+  return { lines, count, subtotal, vat, total: subtotal + vat };
 }

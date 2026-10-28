@@ -1,75 +1,49 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors } from '../theme/colors';
-import { fontSize, fontWeight, radius, spacing } from '../theme/typography';
+import { fontWeight } from '../theme/typography';
 
 type Props = {
   quantity: number;
   canIncrease: boolean;
-  canDecrease: boolean;
   onIncrease: () => void;
   onDecrease: () => void;
 };
 
-function StepButton({
-  label,
-  enabled,
-  onPress,
-}: {
-  label: string;
-  enabled: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      disabled={!enabled}
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.button,
-        !enabled && styles.buttonDisabled,
-        pressed && enabled && styles.buttonPressed,
-      ]}>
-      <Text style={[styles.buttonText, !enabled && styles.buttonTextDisabled]}>{label}</Text>
-    </Pressable>
-  );
-}
-
-export default function QuantityStepper({
-  quantity,
-  canIncrease,
-  canDecrease,
-  onIncrease,
-  onDecrease,
-}: Props) {
+export default function QuantityStepper({ quantity, canIncrease, onIncrease, onDecrease }: Props) {
   return (
     <View style={styles.row}>
-      <StepButton label="−" enabled={canDecrease} onPress={onDecrease} />
-      <Text style={styles.quantity}>{quantity}</Text>
-      <StepButton label="+" enabled={canIncrease} onPress={onIncrease} />
+      <Pressable
+        accessibilityLabel="Giảm"
+        onPress={onDecrease}
+        style={({ pressed }) => [styles.btn, styles.minus, pressed && styles.pressed]}>
+        <Text style={styles.minusText}>−</Text>
+      </Pressable>
+      <Text style={styles.qty}>{quantity}</Text>
+      <Pressable
+        accessibilityLabel="Tăng"
+        disabled={!canIncrease}
+        onPress={onIncrease}
+        style={({ pressed }) => [
+          styles.btn,
+          canIncrease ? styles.plus : styles.plusOff,
+          pressed && styles.pressed,
+        ]}>
+        <Text style={[styles.plusText, !canIncrease && styles.plusTextOff]}>+</Text>
+      </Pressable>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center' },
-  button: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.sm,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  buttonPressed: { backgroundColor: colors.primaryPressed },
-  buttonDisabled: { backgroundColor: colors.disabled },
-  buttonText: { fontSize: fontSize.heading, fontWeight: fontWeight.bold, color: colors.onPrimary },
-  buttonTextDisabled: { color: colors.disabledText },
-  quantity: {
-    minWidth: 36,
-    textAlign: 'center',
-    fontSize: fontSize.title,
-    fontWeight: fontWeight.bold,
-    color: colors.text,
-    marginHorizontal: spacing.xs,
-  },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  btn: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  minus: { borderWidth: 1.5, borderColor: colors.borderStrong, backgroundColor: colors.card },
+  minusText: { fontSize: 20, color: colors.text, fontWeight: fontWeight.semibold },
+  plus: { backgroundColor: colors.primary },
+  plusOff: { backgroundColor: colors.disabledBg },
+  plusText: { fontSize: 20, color: colors.white, fontWeight: fontWeight.semibold },
+  plusTextOff: { color: colors.disabledText },
+  pressed: { transform: [{ scale: 0.92 }] },
+  qty: { minWidth: 22, textAlign: 'center', fontSize: 17, fontWeight: fontWeight.bold, color: colors.text },
 });

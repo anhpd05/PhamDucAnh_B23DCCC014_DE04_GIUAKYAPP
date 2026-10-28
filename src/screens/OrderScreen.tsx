@@ -6,102 +6,152 @@ import AppButton from '../components/AppButton';
 import EmptyState from '../components/EmptyState';
 import OrderDishRow from '../components/OrderDishRow';
 import ScreenContainer from '../components/ScreenContainer';
+import ScreenHeader from '../components/ScreenHeader';
 import SectionHeader from '../components/SectionHeader';
+import StatusChip from '../components/StatusChip';
 import type { RootStackParamList } from '../navigation/types';
 import { useApp } from '../store/AppContext';
-import {
-  getActiveInvoice,
-  groupByCategory,
-  invoiceLines,
-  subtotalOf,
-} from '../store/selectors';
+import { calcInvoice, getActiveInvoice, groupByCategory } from '../store/selectors';
 import { colors } from '../theme/colors';
-import { fontSize, fontWeight, spacing } from '../theme/typography';
+import { fontSize, fontWeight, shadow } from '../theme/typography';
 import type { Dish } from '../types';
-import { formatDateTime, formatMoney } from '../utils/format';
-import { createId } from '../utils/id';
+import { formatMoney } from '../utils/format';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'Order'>;
 
 export default function OrderScreen() {
+  const { state, dispatch } = useApp();
   const navigation = useNavigation<Nav>();
   const { tableNumber } = useRoute<RouteProp<RootStackParamList, 'Order'>>().params;
-  const { state, dispatch } = useApp();
 
-  const sections = useMemo(() => groupByCategory(state.dishes), [state.dishes]);
   const invoice = getActiveInvoice(state.invoices, tableNumber);
-  const subtotal = useMemo(
-    () => (invoice ? subtotalOf(invoiceLines(invoice, state.dishes)) : 0),
-    [invoice, state.dishes],
+  const calc = useMemo(() => calcInvoice(invoice, state.dishes), [invoice, state.dishes]);
+  const quantities = useMemo(
+    () => new Map((invoice ? invoice.items : []).map(i => [i.dishId, i.quantity])),
+    [invoice],
   );
 
-  const quantityOf = (dishId: string) =>
-    invoice?.items.find(i => i.dishId === dishId)?.quantity ?? 0;
+  const sections = useMemo(
+    () =>
+      groupByCategory(state.dishes).map(s => ({
+        title: s.title,
+        data: [...s.data].sort((a, b) => Number(b.available) - Number(a.available)),
+      })),
+    [state.dishes],
+  );
 
   const change = (dishId: string, delta: number) =>
-    dispatch({
-      type: 'CHANGE_QUANTITY',
-      tableNumber,
-      dishId,
-      delta,
-      newInvoiceId: createId(),
-      createdAt: formatDateTime(new Date()),
-    });
+    dispatch({ type: 'CHANGE_QUANTITY', tableNumber, dishId, delta });
 
   const handleDecrease = (dish: Dish) => {
-    if (quantityOf(dish.id) === 1) {
-      Alert.alert('Bỏ món', `Bỏ món ${dish.name} khỏi hoá đơn?`, [
-        { text: 'Huỷ', style: 'cancel' },
-        { text: 'Bỏ món', style: 'destructive', onPress: () => change(dish.id, -1) },
-      ]);
+    const qty = quantities.get(dish.id) ?? 0;
+    if (qty > 1) {
+      change(dish.id, -1);
       return;
     }
-    change(dish.id, -1);
+    const isLast = quantities.size === 1;
+    Alert.alert(
+      'Bỏ món?',
+      `Bỏ “${dish.name}” khỏi hoá đơn bàn ${tableNumber}?${isLast ? ' Bàn sẽ trở về trống.' : ''}`,
+      [
+        { text: 'Huỷ', style: 'cancel' },
+        { text: 'Bỏ món', style: 'destructive', onPress: () => change(dish.id, -1) },
+      ],
+    );
   };
 
+  const hasItems = calc.lines.length > 0;
+
   return (
-    <ScreenContainer>
+    <ScreenContainer whiteFooter>
+      <ScreenHeader
+        title={`Gọi món · Bàn ${tableNumber}`}
+        backLabel="Sơ đồ bàn"
+        onBack={() => navigation.goBack()}
+      />
+      <View style={styles.status}>
+        <StatusChip label={invoice ? 'Đang phục vụ' : 'Bàn trống'} tone={invoice ? 'serving' : 'free'} />
+        <Text style={styles.statusText}>
+          {invoice ? `Mở lúc ${invoice.createdAt}` : 'Chưa có hoá đơn'}
+        </Text>
+      </View>
       <SectionList
         style={styles.list}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={styles.content}
         sections={sections}
-        keyExtractor={dish => dish.id}
+        keyExtractor={d => d.id}
         stickySectionHeadersEnabled={false}
-        renderSectionHeader={({ section }) => <SectionHeader title={section.title} />}
+        ListEmptyComponent={<EmptyState title="Thực đơn trống — hãy thêm món trước." />}
+        renderSectionHeader={({ section }) => {
+          const ordered = section.data.filter(d => quantities.has(d.id)).length;
+          return (
+            <SectionHeader
+              title={section.title}
+              right={ordered > 0 ? `${ordered}/${section.data.length} đã gọi` : `${section.data.length} món`}
+              rightAccent={ordered > 0}
+            />
+          );
+        }}
         renderItem={({ item }) => (
           <OrderDishRow
             dish={item}
-            quantity={quantityOf(item.id)}
+            quantity={quantities.get(item.id) ?? 0}
             onIncrease={() => change(item.id, 1)}
             onDecrease={() => handleDecrease(item)}
           />
         )}
-        ListEmptyComponent={<EmptyState message="Thực đơn trống" />}
       />
       <View style={styles.footer}>
-        <Text style={styles.subtotal}>Tạm tính: {formatMoney(subtotal)}</Text>
-        <AppButton
-          title="Thanh toán"
-          onPress={() => navigation.navigate('Payment', { tableNumber })}
-        />
+        <View style={styles.totalRow}>
+          <View>
+            <Text style={styles.totalLabel}>Tạm tính</Text>
+            <Text style={styles.totalSub}>
+              {hasItems
+                ? `${calc.count} phần · ${calc.lines.length} món`
+                : 'Chạm vào món để gọi'}
+            </Text>
+          </View>
+          <Text style={styles.total}>{formatMoney(calc.subtotal)}</Text>
+        </View>
+        <View style={styles.buttons}>
+          <AppButton
+            title="Xong"
+            variant="outline"
+            onPress={() => navigation.goBack()}
+            style={styles.btnDone}
+          />
+          <AppButton
+            title="Thanh toán"
+            disabled={!hasItems}
+            onPress={() => navigation.navigate('Payment', { tableNumber })}
+            style={styles.btnPay}
+          />
+        </View>
       </View>
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  list: { flex: 1 },
-  listContent: { paddingHorizontal: spacing.lg, flexGrow: 1 },
-  footer: {
-    padding: spacing.lg,
-    backgroundColor: colors.surface,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
+  status: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    backgroundColor: colors.card,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
-  subtotal: {
-    fontSize: fontSize.title,
-    fontWeight: fontWeight.bold,
-    color: colors.text,
-    marginBottom: spacing.md,
-  },
+  statusText: { fontSize: fontSize.small, color: colors.textSub },
+  list: { flex: 1, backgroundColor: colors.background },
+  content: { paddingHorizontal: 20, paddingBottom: 12 },
+  footer: { backgroundColor: colors.card, padding: 16, ...shadow, shadowOffset: { width: 0, height: -2 } },
+  totalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  totalLabel: { fontSize: fontSize.name, fontWeight: fontWeight.semibold, color: colors.text },
+  totalSub: { fontSize: fontSize.small, color: colors.textSub, marginTop: 2 },
+  total: { fontSize: fontSize.big, fontWeight: fontWeight.bold, color: colors.text },
+  buttons: { flexDirection: 'row', gap: 12 },
+  btnDone: { flex: 1 },
+  btnPay: { flex: 2 },
 });

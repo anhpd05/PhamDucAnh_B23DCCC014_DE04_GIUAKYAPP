@@ -1,14 +1,15 @@
 import React from 'react';
 import { Pressable, StyleProp, StyleSheet, Text, ViewStyle } from 'react-native';
 import { colors } from '../theme/colors';
-import { fontSize, fontWeight, radius, spacing } from '../theme/typography';
+import { fontSize, fontWeight, radius, size } from '../theme/typography';
 
-type Variant = 'primary' | 'outline' | 'danger';
+type Variant = 'primary' | 'outline' | 'soft';
 
 type Props = {
   title: string;
   onPress: () => void;
   variant?: Variant;
+  small?: boolean;
   disabled?: boolean;
   style?: StyleProp<ViewStyle>;
 };
@@ -17,6 +18,7 @@ export default function AppButton({
   title,
   onPress,
   variant = 'primary',
+  small = false,
   disabled = false,
   style,
 }: Props) {
@@ -28,15 +30,17 @@ export default function AppButton({
       onPress={onPress}
       style={({ pressed }) => [
         styles.base,
+        small ? styles.sm : styles.lg,
         variantStyles[variant],
         pressed && pressedStyles[variant],
+        pressed && styles.pressedScale,
         disabled && styles.disabled,
         style,
       ]}>
       <Text
         style={[
           styles.text,
-          variant === 'outline' && styles.outlineText,
+          variant !== 'primary' && styles.textAccent,
           disabled && styles.disabledText,
         ]}>
         {title}
@@ -47,39 +51,29 @@ export default function AppButton({
 
 const styles = StyleSheet.create({
   base: {
-    minHeight: 44,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderRadius: radius.md,
+    borderRadius: radius.input,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
+    borderWidth: 1.5,
+    paddingHorizontal: 16,
   },
-  text: {
-    fontSize: fontSize.body,
-    fontWeight: fontWeight.bold,
-    color: colors.onPrimary,
-  },
-  outlineText: {
-    color: colors.primary,
-  },
-  disabled: {
-    backgroundColor: colors.disabled,
-    borderColor: colors.disabled,
-  },
-  disabledText: {
-    color: colors.disabledText,
-  },
+  lg: { height: size.buttonLg },
+  sm: { height: size.buttonSm },
+  pressedScale: { transform: [{ scale: 0.96 }] },
+  text: { fontSize: fontSize.name, fontWeight: fontWeight.semibold, color: colors.white },
+  textAccent: { color: colors.primary },
+  disabled: { backgroundColor: colors.disabledBg, borderColor: colors.disabledBg },
+  disabledText: { color: colors.disabledText },
 });
 
 const variantStyles = StyleSheet.create({
   primary: { backgroundColor: colors.primary, borderColor: colors.primary },
-  outline: { backgroundColor: colors.surface, borderColor: colors.primary },
-  danger: { backgroundColor: colors.danger, borderColor: colors.danger },
+  outline: { backgroundColor: colors.card, borderColor: colors.borderStrong },
+  soft: { backgroundColor: colors.primarySoft, borderColor: colors.primarySoft },
 });
 
 const pressedStyles = StyleSheet.create({
-  primary: { backgroundColor: colors.primaryPressed, borderColor: colors.primaryPressed },
-  outline: { backgroundColor: colors.tableBusy },
-  danger: { backgroundColor: colors.dangerPressed, borderColor: colors.dangerPressed },
+  primary: { backgroundColor: colors.primaryDark, borderColor: colors.primaryDark },
+  outline: { backgroundColor: colors.surfaceAlt },
+  soft: { backgroundColor: colors.tabSubActive, borderColor: colors.tabSubActive },
 });

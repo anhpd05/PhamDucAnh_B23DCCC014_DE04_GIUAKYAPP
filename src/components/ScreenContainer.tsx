@@ -1,21 +1,22 @@
 import React from 'react';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '../theme/colors';
 
-type Props = { children: React.ReactNode };
+type Props = { children: React.ReactNode; whiteFooter?: boolean };
 
-export default function ScreenContainer({ children }: Props) {
+export default function ScreenContainer({ children, whiteFooter = false }: Props) {
   return (
-    <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
-      {children}
-    </SafeAreaView>
+    <View style={[styles.root, whiteFooter && styles.rootWhite]}>
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+        {children}
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
+  root: { flex: 1, backgroundColor: colors.background },
+  rootWhite: { backgroundColor: colors.card },
+  container: { flex: 1 },
 });

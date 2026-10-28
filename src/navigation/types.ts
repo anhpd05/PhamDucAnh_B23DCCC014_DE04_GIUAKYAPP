@@ -1,7 +1,8 @@
+export type HomeTab = 'tables' | 'menu';
+
 export type RootStackParamList = {
-  Menu: undefined;
+  Home: { tab?: HomeTab } | undefined;
   DishForm: { dishId?: string };
-  TableMap: undefined;
   Order: { tableNumber: number };
   Payment: { tableNumber: number };
 };

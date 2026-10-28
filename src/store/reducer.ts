@@ -1,22 +1,22 @@
-import type { Category, Dish, Invoice } from '../types';
+import { ACTIVE, PAID, type Category, type Dish, type Invoice } from '../types';
+import { createId } from '../utils/id';
+import { formatDateTime } from '../utils/format';
 
 export type State = { dishes: Dish[]; invoices: Invoice[]; hydrated: boolean };
 
 export type Action =
   | { type: 'HYDRATE'; dishes: Dish[]; invoices: Invoice[] }
   | { type: 'TOGGLE_AVAILABLE'; dishId: string }
-  | { type: 'ADD_DISH'; id: string; name: string; category: Category; price: number }
-  | { type: 'UPDATE_DISH'; id: string; name: string; category: Category; price: number }
-  | { type: 'DELETE_DISH'; dishId: string }
   | {
-      type: 'CHANGE_QUANTITY';
-      tableNumber: number;
-      dishId: string;
-      delta: number;
-      // Only used when this action creates the table's invoice.
-      newInvoiceId: string;
-      createdAt: string;
+      type: 'SAVE_DISH';
+      id?: string;
+      name: string;
+      category: Category;
+      price: number;
+      available: boolean;
     }
+  | { type: 'DELETE_DISH'; dishId: string }
+  | { type: 'CHANGE_QUANTITY'; tableNumber: number; dishId: string; delta: number }
   | { type: 'PAY'; invoiceId: string };
 
 export const initialState: State = { dishes: [], invoices: [], hydrated: false };
@@ -34,30 +34,19 @@ export function reducer(state: State, action: Action): State {
         ),
       };
 
-    case 'ADD_DISH':
+    case 'SAVE_DISH': {
+      const { id, name, category, price, available } = action;
+      if (id === undefined) {
+        return {
+          ...state,
+          dishes: [...state.dishes, { id: createId(), name, category, price, available }],
+        };
+      }
       return {
         ...state,
-        dishes: [
-          ...state.dishes,
-          {
-            id: action.id,
-            name: action.name,
-            category: action.category,
-            price: action.price,
-            available: true,
-          },
-        ],
+        dishes: state.dishes.map(d => (d.id === id ? { id, name, category, price, available } : d)),
       };
-
-    case 'UPDATE_DISH':
-      return {
-        ...state,
-        dishes: state.dishes.map(d =>
-          d.id === action.id
-            ? { ...d, name: action.name, category: action.category, price: action.price }
-            : d,
-        ),
-      };
+    }
 
     case 'DELETE_DISH':
       return { ...state, dishes: state.dishes.filter(d => d.id !== action.dishId) };
@@ -68,19 +57,17 @@ export function reducer(state: State, action: Action): State {
       if (delta > 0 && (!dish || !dish.available)) {
         return state;
       }
-      const active = state.invoices.find(
-        i => i.tableNumber === tableNumber && i.status === 'Đang phục vụ',
-      );
+      const active = state.invoices.find(i => i.tableNumber === tableNumber && i.status === ACTIVE);
       if (!active) {
         if (delta <= 0) {
           return state;
         }
         const created: Invoice = {
-          id: action.newInvoiceId,
+          id: createId(),
           tableNumber,
           items: [{ dishId, quantity: delta }],
-          status: 'Đang phục vụ',
-          createdAt: action.createdAt,
+          status: ACTIVE,
+          createdAt: formatDateTime(new Date()),
         };
         return { ...state, invoices: [...state.invoices, created] };
       }
@@ -88,9 +75,13 @@ export function reducer(state: State, action: Action): State {
       const next = current + delta;
       let items = active.items.filter(i => i.dishId !== dishId);
       if (next > 0) {
-        items = current > 0
-          ? active.items.map(i => (i.dishId === dishId ? { ...i, quantity: next } : i))
-          : [...items, { dishId, quantity: next }];
+        items =
+          current > 0
+            ? active.items.map(i => (i.dishId === dishId ? { ...i, quantity: next } : i))
+            : [...items, { dishId, quantity: next }];
+      }
+      if (items.length === 0) {
+        return { ...state, invoices: state.invoices.filter(i => i.id !== active.id) };
       }
       return {
         ...state,
@@ -101,9 +92,7 @@ export function reducer(state: State, action: Action): State {
     case 'PAY':
       return {
         ...state,
-        invoices: state.invoices.map(i =>
-          i.id === action.invoiceId ? { ...i, status: 'Đã thanh toán' } : i,
-        ),
+        invoices: state.invoices.map(i => (i.id === action.invoiceId ? { ...i, status: PAID } : i)),
       };
 
     default:

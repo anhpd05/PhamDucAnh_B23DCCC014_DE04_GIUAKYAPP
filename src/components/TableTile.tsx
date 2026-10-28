@@ -1,39 +1,58 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors } from '../theme/colors';
-import { fontSize, fontWeight, spacing } from '../theme/typography';
+import { fontSize, fontWeight, radius } from '../theme/typography';
 import { formatMoney } from '../utils/format';
-import Card from './Card';
+import StatusChip from './StatusChip';
 
 type Props = {
   tableNumber: number;
   busy: boolean;
+  count: number;
   subtotal: number;
   onPress: () => void;
 };
 
-export default function TableTile({ tableNumber, busy, subtotal, onPress }: Props) {
+export default function TableTile({ tableNumber, busy, count, subtotal, onPress }: Props) {
   return (
     <Pressable
-      style={({ pressed }) => [styles.pressable, pressed && styles.pressed]}
-      onPress={onPress}>
-      <Card style={[styles.card, { backgroundColor: busy ? colors.tableBusy : colors.tableFree }]}>
-        <Text style={styles.number}>Bàn {tableNumber}</Text>
-        <Text style={[styles.status, busy && styles.statusBusy]}>
-          {busy ? 'Có khách' : 'Trống'}
-        </Text>
-        {busy && <Text style={styles.subtotal}>{formatMoney(subtotal)}</Text>}
-      </Card>
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.tile,
+        busy ? styles.tileBusy : styles.tileFree,
+        pressed && styles.pressed,
+      ]}>
+      <View style={styles.top}>
+        <Text style={[styles.tableWord, busy && styles.whiteText]}>BÀN</Text>
+        <StatusChip label={busy ? 'Có khách' : 'Trống'} tone={busy ? 'busy' : 'free'} />
+      </View>
+      <Text style={[styles.number, busy && styles.whiteText]}>
+        {String(tableNumber).padStart(2, '0')}
+      </Text>
+      <Text style={[styles.foot, busy && styles.footBusy]}>
+        {busy ? `${count} món · ${formatMoney(subtotal)}` : 'Chạm để gọi món'}
+      </Text>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  pressable: { flex: 1 },
-  pressed: { opacity: 0.7 },
-  card: { alignItems: 'center', minHeight: 96, justifyContent: 'center' },
-  number: { fontSize: fontSize.heading, fontWeight: fontWeight.bold, color: colors.text },
-  status: { marginTop: spacing.xs, fontSize: fontSize.small, color: colors.success },
-  statusBusy: { color: colors.danger, fontWeight: fontWeight.bold },
-  subtotal: { marginTop: spacing.xs, fontSize: fontSize.small, color: colors.textMuted },
+  tile: {
+    flex: 1,
+    minHeight: 112,
+    borderRadius: radius.table,
+    borderWidth: 1.5,
+    padding: 12,
+    justifyContent: 'space-between',
+  },
+  tileFree: { backgroundColor: colors.card, borderColor: colors.border },
+  tileBusy: { backgroundColor: colors.primary, borderColor: colors.primary },
+  pressed: { transform: [{ scale: 0.96 }] },
+  top: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  tableWord: { fontSize: fontSize.small, fontWeight: fontWeight.semibold, color: colors.textSub },
+  whiteText: { color: colors.white },
+  number: { fontSize: 32, fontWeight: fontWeight.bold, color: colors.text },
+  foot: { fontSize: fontSize.small, color: colors.textSub },
+  footBusy: { color: colors.onPrimarySub },
 });

@@ -1,30 +1,28 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors } from '../theme/colors';
-import { fontSize, fontWeight, radius, spacing } from '../theme/typography';
+import { fontSize, fontWeight, radius } from '../theme/typography';
 import { CATEGORIES, type Category } from '../types';
 
-type Props = { value: Category; onChange: (category: Category) => void };
+type Props = { value: Category; onChange: (c: Category) => void };
 
 export default function CategoryPicker({ value, onChange }: Props) {
   return (
     <View style={styles.wrapper}>
       <Text style={styles.label}>Loại món</Text>
-      <View style={styles.row}>
-        {CATEGORIES.map(category => {
-          const selected = category === value;
+      <View style={styles.grid}>
+        {CATEGORIES.map(c => {
+          const selected = c === value;
           return (
             <Pressable
-              key={category}
-              onPress={() => onChange(category)}
+              key={c}
+              onPress={() => onChange(c)}
               style={({ pressed }) => [
-                styles.chip,
-                selected && styles.chipSelected,
-                pressed && styles.chipPressed,
+                styles.item,
+                selected ? styles.itemOn : styles.itemOff,
+                pressed && styles.pressed,
               ]}>
-              <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
-                {category}
-              </Text>
+              <Text style={[styles.text, selected && styles.textOn]}>{c}</Text>
             </Pressable>
           );
         })}
@@ -34,26 +32,21 @@ export default function CategoryPicker({ value, onChange }: Props) {
 }
 
 const styles = StyleSheet.create({
-  wrapper: { marginBottom: spacing.xl },
-  label: {
-    fontSize: fontSize.small,
-    fontWeight: fontWeight.medium,
-    color: colors.text,
-    marginBottom: spacing.xs,
+  wrapper: { marginBottom: 16 },
+  label: { fontSize: 14, fontWeight: fontWeight.semibold, color: colors.textMuted, marginBottom: 6 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  item: {
+    width: '48%',
+    flexGrow: 1,
+    height: 46,
+    borderRadius: radius.input,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  row: { flexDirection: 'row', flexWrap: 'wrap' },
-  chip: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-    marginRight: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-  chipSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
-  chipPressed: { opacity: 0.7 },
-  chipText: { fontSize: fontSize.small, color: colors.text },
-  chipTextSelected: { color: colors.onPrimary, fontWeight: fontWeight.bold },
+  itemOn: { backgroundColor: colors.primary, borderColor: colors.primary },
+  itemOff: { backgroundColor: colors.card, borderColor: colors.border },
+  pressed: { transform: [{ scale: 0.96 }] },
+  text: { fontSize: fontSize.body, fontWeight: fontWeight.semibold, color: colors.text },
+  textOn: { color: colors.white },
 });

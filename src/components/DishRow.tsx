@@ -1,10 +1,9 @@
 import React from 'react';
 import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import { colors } from '../theme/colors';
-import { fontSize, fontWeight, spacing } from '../theme/typography';
+import { fontSize, fontWeight, radius, shadow } from '../theme/typography';
 import type { Dish } from '../types';
 import { formatMoney } from '../utils/format';
-import Card from './Card';
 
 type Props = {
   dish: Dish;
@@ -14,25 +13,31 @@ type Props = {
 };
 
 export default function DishRow({ dish, onPress, onLongPress, onToggle }: Props) {
+  const soldOut = !dish.available;
   return (
-    <Card style={[styles.card, !dish.available && styles.unavailable]}>
+    <View style={styles.card}>
       <Pressable
-        style={({ pressed }) => [styles.info, pressed && styles.pressed]}
         onPress={onPress}
-        onLongPress={onLongPress}>
-        <Text style={styles.name}>{dish.name}</Text>
-        <View style={styles.metaRow}>
+        onLongPress={onLongPress}
+        delayLongPress={500}
+        style={({ pressed }) => [styles.main, pressed && styles.pressed]}>
+        <View style={soldOut && styles.dim}>
+          <Text style={styles.name}>{dish.name}</Text>
           <Text style={styles.price}>{formatMoney(dish.price)}</Text>
-          {!dish.available && <Text style={styles.soldOut}>Hết món</Text>}
         </View>
+        {soldOut ? (
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>Hết món</Text>
+          </View>
+        ) : null}
       </Pressable>
       <Switch
         value={dish.available}
         onValueChange={onToggle}
-        trackColor={{ false: colors.disabled, true: colors.primary }}
-        thumbColor={colors.surface}
+        trackColor={{ false: colors.borderStrong, true: colors.primary }}
+        thumbColor={colors.white}
       />
-    </Card>
+    </View>
   );
 }
 
@@ -40,22 +45,26 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.sm,
+    backgroundColor: colors.card,
+    borderRadius: radius.card,
+    marginBottom: 10,
+    paddingRight: 12,
+    ...shadow,
   },
-  unavailable: { opacity: 0.5 },
-  info: { flex: 1, paddingRight: spacing.md },
-  pressed: { opacity: 0.6 },
-  name: {
-    fontSize: fontSize.title,
-    fontWeight: fontWeight.bold,
-    color: colors.text,
+  main: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    paddingLeft: 16,
+    paddingRight: 8,
+    borderRadius: radius.card,
   },
-  metaRow: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.xs },
-  price: { fontSize: fontSize.small, color: colors.textMuted },
-  soldOut: {
-    marginLeft: spacing.sm,
-    fontSize: fontSize.caption,
-    fontWeight: fontWeight.bold,
-    color: colors.danger,
-  },
+  pressed: { backgroundColor: colors.surfaceAlt, transform: [{ scale: 0.985 }] },
+  dim: { opacity: 0.45 },
+  name: { fontSize: fontSize.name, fontWeight: fontWeight.semibold, color: colors.text },
+  price: { fontSize: fontSize.body, fontWeight: fontWeight.semibold, color: colors.primary, marginTop: 2 },
+  badge: { backgroundColor: colors.dangerSoft, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
+  badgeText: { fontSize: fontSize.tiny, fontWeight: fontWeight.semibold, color: colors.danger },
 });

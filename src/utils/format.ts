@@ -1,5 +1,9 @@
+export function groupDigits(digits: string): string {
+  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
+
 export function formatMoney(value: number): string {
-  return `${String(Math.round(value)).replace(/\B(?=(\d{3})+(?!\d))/g, '.')} đ`;
+  return `${groupDigits(String(Math.round(value)))} đ`;
 }
 
 const pad = (n: number) => String(n).padStart(2, '0');
